@@ -5,12 +5,15 @@ open MathNet.Numerics.LinearAlgebra
 open Common.Extensions
 open System
 
+
 let pi = 3.14
 let L_initial = 1.2
 let q = 1.0
-let N = 25
+let N = 32
 let f0 (x) = -((4.0 - x * x) * (4.0 - x * x))
 let percision = 0.0001
+
+let ii = -1.0 //Extreme.Mathematics.Complex<float>(0.0, 1.0)
 
 let mutable U = Matrix.Build.Dense(N, N)
 let mutable V = Matrix.Build.Dense(N, N)
@@ -92,7 +95,7 @@ let pow(x: double, n: int) =
     res
 
 let landa_j(i: double, j: double) =
-    L_initial + q + exp(i * 2.0 * j / (double)N)
+    (L_initial + q + exp((double)ii * 2.0 * j / (double)N))
 
 [<EntryPoint>]
 let main argv =
@@ -109,7 +112,8 @@ let main argv =
     for r = 0 to N - 1 do
         del <- del + (V.[r, r] / U.[r, r])
 
-    let m = abs((int)((1.0 / (2.0 * pi * 1.4)) * del))
+    let m = abs((int)((double)(1.0 / (2.0 * pi * ii)) * del))
+
     let landas = Array.create m  0.0
 
     let s = Vector<double>.Build.Dense(m)
@@ -126,17 +130,17 @@ let main argv =
             for r = 0 to N - 1 do
                 del <- del + (V.[r, r] / U.[r, r])
 
-            sum <- sum + (pow(landa, k) * q * exp((double)k * (2.0 * pi * (double)j / (double)N)) * del)
+            sum <- sum + (pow(landa, k) * q * exp((double)ii * (2.0 * pi * (double)j / (double)N)) * del)
         
         s.[k] <- (1.0 / (double)m) * sum
 
     for j = 1 to m do
-        landas.[j - 1] <- L_initial + q * exp(2.0 * pi * (double)j / s.[0])
+        landas.[j - 1] <- L_initial + q * exp((double(ii) * 2.0 * pi * (double)j / (double)m))
 
     for j = 0 to (m - 1) do
         let mutable previousValue = landas.[j]
         let mutable index = 1
-        while index = 1 || abs(previousValue - landas.[j]) > percision do
+        while (index = 1 || abs(previousValue - landas.[j]) > percision) do
             let F = Vector<double>.Build.Dense(m)
 
             for k = 0 to (m - 1) do
@@ -149,9 +153,12 @@ let main argv =
             landas.[j] <- landas.[j] - (1.0 / (MatrixExtensions.MultiplyVectorsTansponential(F, MatrixExtensions.SubtractVectors(F, s))))
             index <- index + 1
 
-    for i = 0 to (m - 1) do
-        Console.WriteLine ("L_{0} :: {1}", i + 1, landas.[i])
+            if index < 100 then
+                landas.[j] <- -1.0
 
+    for i = 0 to (m - 1) do
+        if landas.[i] > 0.0 then Console.WriteLine ("L_{0} :: {1}", i + 1, landas.[i])
+
+    printfn "End of execution"
     Console.ReadKey() |> ignore
-    printfn "Hello World from F#!"
     0 // return an integer exit code

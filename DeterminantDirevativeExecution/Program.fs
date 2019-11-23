@@ -96,6 +96,7 @@ let main argv =
     let discretiziedOperator = discretizyFunction(f0)
     let _A = createMatrix(discretiziedOperator)
 
+
     eigenvalues.Item(0) <- 0.4
     Console.WriteLine("Iteration - {0,2}   :: Next landa value is " + (eigenvalues.Item(0)).ToString(), "1")
 

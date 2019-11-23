@@ -3,7 +3,7 @@
 open MathNet.Numerics
 open MathNet.Numerics.LinearAlgebra.Double
 
-let mutable discretizationVectorSize = 100
+let mutable discretizationVectorSize = 10
 let minBorder = -1.0
 let maxBorder = 1.0
 let l2 = 0.7
