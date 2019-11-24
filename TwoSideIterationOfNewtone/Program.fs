@@ -1,29 +1,31 @@
 ﻿// Learn more about F# at http://fsharp.org
 
 open System
-
-open MathNet.Numerics
-open MathNet.Numerics.LinearAlgebra.Double
-
-open Extreme.Mathematics
-
+open MathNet.Numerics.LinearAlgebra
 open Common.Extensions
+open Accord.Math
 
-let discretizationVectorSize = 10
-let minBorder = -1.0
-let maxBorder = 1.0
+let L_initial = 1.8
+
+let discretizationVectorSize = 70
+let minBorder = -3.0
+let maxBorder = 3.0
 let f0 (x) = -((4.0 - x * x) * (4.0 - x * x))
 let percision = 0.0001
 
-let mutable U = LinearAlgebra.Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
-let mutable V = LinearAlgebra.Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
-let mutable L = LinearAlgebra.Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
-let mutable M = LinearAlgebra.Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
+let mutable U = Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
+let mutable V = Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
+let mutable L = Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
+let mutable M = Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
+let mutable N = Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
+let mutable W = Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
 
 
-let generateQL (operator: LinearAlgebra.Matrix<double>) =
-    let mutable B = LinearAlgebra.Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
+let generateQL (operator: Matrix<double>) =
+    let mutable B = Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
+    let mutable СC = Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
     B <- MatrixExtensions.SetDiagonalElements(B, 1.0)
+    СC <- MatrixExtensions.SetDiagonalElements(СC, 1.0)
 
     for r = 0 to discretizationVectorSize - 1 do
         let mutable k = r
@@ -53,13 +55,28 @@ let generateQL (operator: LinearAlgebra.Matrix<double>) =
         let sum_2 = MatrixExtensions.MultiplyVectors(MatrixExtensions.GetRow(L, r), MatrixExtensions.GetColumn(V, k))
         V.[r, k] <-  B.[r, k] - MatrixExtensions.SumFirstElements(MatrixExtensions.Sum(sum_1, sum_2), r)
 
+    for r = 0 to discretizationVectorSize - 1 do
+        let mutable k = r
+        for i = r + 1 to discretizationVectorSize - 1 do
+            let mutable sum = 0.0
+            for j = 0 to r do
+                sum <- sum + (N.[r, j] * U.[j, k] + 2.0 * M.[r, j] * V.[j, k] + L.[r, j] * W.[j, k])
+            W.[r, k] <- СC.[r, k] - sum
+
+            sum <- 0.0
+            for j = 0 to r do
+                sum <- sum + (N.[i, j] * U.[j, r] + 2.0 * M.[i, j] * V.[j, r] + L.[i, j] * W.[j, r])
+            N.[i, r] <- ((СC.[i, r] - sum  - 2.0 * M.[i, r] * V.[r, r] - L.[i, r] * W.[r, r]) / U.[r, r])
+
+            k <- k + 1
+
 let resetMatrix () = 
     U <- Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
     V <- Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
     L <- Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
     M <- Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
 
-let createMatrix (v:LinearAlgebra.Vector<float>) =
+let createMatrix (v:Vector<float>) =
     let matrix = Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
     for index = 0 to (discretizationVectorSize - 1) do
         matrix.Item(index, index) <- -2.0
@@ -91,35 +108,51 @@ let generateEigenValueMatrix(landa: float) =
 
 [<EntryPoint>]
 let main argv =
-    let dL_values = Vector.Build.Dense(10000)
-    let eigenvalues = Vector.Build.Dense(10000)
+    let Landas = Vector.Build.Dense(1000000)
+    let lower_bounds = Vector.Build.Dense(1000000)
+    let higher_bounds = Vector.Build.Dense(1000000)
+
+    Landas.[0] <- L_initial
+    lower_bounds.[0] <- minBorder
+    higher_bounds.[0] <- maxBorder
+
     let discretiziedOperator = discretizyFunction(f0)
     let _A = createMatrix(discretiziedOperator)
 
-
-    eigenvalues.Item(0) <- 0.4
-    Console.WriteLine("Iteration - {0,2}   :: Next landa value is " + (eigenvalues.Item(0)).ToString(), "1")
-
     let mutable index = 1
-    while index = 1 || Math.Abs(dL_values.Item(index) - dL_values.Item(index - 1)) > percision do
-        let landaMatrix = generateEigenValueMatrix(eigenvalues.Item(index - 1))
+    while index = 1 || Math.Abs(Landas.[index - 1] - Landas.[index - 2]) > percision do
+        let landaMatrix = generateEigenValueMatrix(Landas.Item(index - 1))
         let D = MatrixExtensions.Subtract(_A, landaMatrix)
         
+        resetMatrix()
         generateQL(D)
 
-        let mutable sum = 0.0
-        for i = 0 to discretizationVectorSize - 1 do
-            sum <- sum + (V.Item(i, i) / U.Item(i, i))
-        dL_values.Item(index) <- (1.0 / sum)
+        let mutable sum_min = 0.0
+        let mutable sum_max = 0.0
+        for k = 0 to discretizationVectorSize - 1 do
+            sum_min <- sum_min + (V.[k, k] / U.[k, k])
+        for k = 0 to discretizationVectorSize - 1 do
+            sum_max <- sum_max + (((V.[k, k] / U.[k, k]) * (V.[k, k] / U.[k, k])) - (W.[k, k] / U.[k, k]))
 
-        eigenvalues.Item(index) <- (eigenvalues.Item(index - 1) + dL_values.Item(index))
+        lower_bounds.[index] <- Landas.[index - 1] - abs(1.0/sum_min)
+        higher_bounds.[index] <- Landas.[index - 1] - abs(sum_min/sum_max)
 
-        Console.WriteLine("Iteration - {0,2}   :: Next landa value is " + (eigenvalues.Item(index)).ToString(), (index + 1).ToString())
+        Landas.[index] <- ((lower_bounds.[index] + higher_bounds.[index]) / 2.0)
 
         index <- index + 1
-        resetMatrix()
+
+    Console.WriteLine ("\nTwo side iterations")
+    Console.WriteLine ("{0,2} : {1,12}  < Result < {2,10}", "№", "m first side", "m second side")
+    for i = 1 to index - 1 do
+        Console.WriteLine ("{0,2} : {1,12}  < {2,10} < {3,10}", i, lower_bounds.[i], Landas.[i], higher_bounds.[i])
+
+
+    let inverse = new Decompositions.EigenvalueDecomposition(_A.ToArray(), false, true)
+    let eigenValuess = inverse.RealEigenvalues
+
+    Console.WriteLine ("\nReal values")
+    for i = 0 to eigenValuess.Length - 1 do
+        Console.Write ("{0} ,", eigenValuess.[i])
 
     Console.ReadKey() |> ignore
-
-    printfn "Hello World from F#!"
-    0 // return an integer exit code
+    0

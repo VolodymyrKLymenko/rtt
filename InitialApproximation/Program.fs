@@ -1,32 +1,38 @@
 ﻿// Learn more about F# at http://fsharp.org
 
-open MathNet.Numerics.LinearAlgebra
+open MathNet.Numerics
+open MathNet.Numerics.LinearAlgebra.Double
+open Accord.Math
 
 open Common.Extensions
 open System
+open Extreme.Mathematics
 
-
-let pi = 3.14
 let L_initial = 1.2
-let q = 1.0
-let N = 32
+
+let q = 2.0
+let area_center = 0.0
+
+let N = 25
+let n = 25
+
 let f0 (x) = -((4.0 - x * x) * (4.0 - x * x))
-let percision = 0.0001
+let percision = 0.001
 
-let ii = -1.0 //Extreme.Mathematics.Complex<float>(0.0, 1.0)
+let mutable U = Matrix.Build.Dense(n, n)
+let mutable V = Matrix.Build.Dense(n, n)
+let mutable L = Matrix.Build.Dense(n, n)
+let mutable M = Matrix.Build.Dense(n, n)
+let mutable m = 0
+let mutable eigenValues = LinearAlgebra.Vector<float>.Build.Dense(10)
 
-let mutable U = Matrix.Build.Dense(N, N)
-let mutable V = Matrix.Build.Dense(N, N)
-let mutable L = Matrix.Build.Dense(N, N)
-let mutable M = Matrix.Build.Dense(N, N)
-
-let generateQL (operator: Matrix<double>) =
-    let mutable B = Matrix.Build.Dense(N, N)
+let generateQL (operator: LinearAlgebra.Matrix<double>) =
+    let mutable B = Matrix.Build.Dense(n, n)
     B <- MatrixExtensions.SetDiagonalElements(B, 1.0)
 
-    for r = 0 to N - 1 do
+    for r = 0 to n - 1 do
         let mutable k = r
-        for i = r + 1 to N - 1 do
+        for i = r + 1 to n - 1 do
             let mutable L_row = MatrixExtensions.GetRow(L, k)
             let mutable U_column = MatrixExtensions.GetColumn(U, k)
             U.Item(r, k) <- operator.Item(r, k) - MatrixExtensions.SumFirstElements(MatrixExtensions.MultiplyVectors(L_row, U_column), r)
@@ -53,38 +59,56 @@ let generateQL (operator: Matrix<double>) =
         V.[r, k] <-  B.[r, k] - MatrixExtensions.SumFirstElements(MatrixExtensions.Sum(sum_1, sum_2), r)
 
 let resetMatrix () = 
-    U <- Matrix.Build.Dense(N, N)
-    V <- Matrix.Build.Dense(N, N)
-    L <- Matrix.Build.Dense(N, N)
-    M <- Matrix.Build.Dense(N, N)
+    U <- Matrix.Build.Dense(n, n)
+    V <- Matrix.Build.Dense(n, n)
+    L <- Matrix.Build.Dense(n, n)
+    M <- Matrix.Build.Dense(n, n)
 
-let createMatrix (v:Vector<float>) =
-    let matrix = Matrix.Build.Dense(N, N)
-    for index = 0 to (N - 1) do
+let createMatrix (v:LinearAlgebra.Vector<float>) =
+    let matrix = Matrix.Build.Dense(n, n)
+    for index = 0 to (n - 1) do
         matrix.Item(index, index) <- -2.0
-        if index + 1 < N then
+        if index + 1 < n then
             matrix.Item(index, index + 1) <- 1.0
             matrix.Item(index + 1, index) <- 1.0
-    
-    let vectorMatrix = Matrix.Build.Dense(N, N)
-    for index = 0 to (N - 1) do
+
+    let vectorMatrix = Matrix.Build.Dense(n, n)
+    for index = 0 to (n - 1) do
         vectorMatrix.Item(index, index) <- v.Item(index)
     
-    matrix * vectorMatrix
+    let res = matrix * vectorMatrix
+
+    let inverse = new Decompositions.EigenvalueDecomposition(res.ToArray(), false, true)
+    let eigenValuess = inverse.RealEigenvalues
+    
+    let mutable count_ = 0
+    for i = 0 to eigenValuess.Length - 1 do
+        if eigenValuess.[i] <= (area_center + q) && eigenValuess.[i] >= (area_center - area_center) && eigenValuess.[i] <> 0.0 then
+            count_ <- count_ + 1
+
+    eigenValues <- LinearAlgebra.Vector<float>.Build.Dense(count_)
+    
+    let mutable index = 0
+    for i = 0 to eigenValuess.Length - 1 do
+        if eigenValuess.[i] <= (area_center + q) && eigenValuess.[i] >= (area_center - area_center) && eigenValuess.[i] <> 0.0 then
+            eigenValues.[index] <- eigenValuess.[i]
+            index <- index + 1
+
+    res
 
 let discretizyFunction (func:(float -> float)) =
-    let resVector = Vector.Build.Dense N
-    let step = (-q - q) / ((double)N - 1.0)
-    let mutable left = -q
-    for index = 0 to (N - 1) do
+    let resVector = Vector.Build.Dense n
+    let step = (2.0 * q) / ((double)n - 1.0)
+    let mutable left = area_center - q
+    for index = 0 to (n - 1) do
         let discretizedItem = func(left)
         resVector.Item(index) <- discretizedItem
         left <- left + step
     resVector
 
 let generateEigenValueMatrix(landa: float) =
-    let vectorMatrix = Matrix.Build.Dense(N, N)
-    for index = 0 to (N - 1) do
+    let vectorMatrix = Matrix.Build.Dense(n, n)
+    for index = 0 to (n - 1) do
         vectorMatrix.Item(index, index) <- landa
     vectorMatrix
 
@@ -94,71 +118,93 @@ let pow(x: double, n: int) =
         res <- res * x
     res
 
-let landa_j(i: double, j: double) =
-    (L_initial + q + exp((double)ii * 2.0 * j / (double)N))
+let F(landas: LinearAlgebra.Vector<double>, m: int) =
+    let res = LinearAlgebra.Vector<double>.Build.Dense(m)
+    for k = 0 to m - 1 do
+        let mutable sum = 0.0
+        for j = 0 to m - 1 do
+            sum <- sum + pow(landas.[j], k + 1)
+        res.[k] <- sum
+    res
+
+let F_derative(landas: LinearAlgebra.Vector<double>, m: int) =
+    let res = LinearAlgebra.Vector<double>.Build.Dense(m)
+    for k = 0 to m - 1 do
+        let mutable sum = 0.0
+        for j = 0 to m - 1 do
+            sum <- sum + ((double)(k + 1) * pow(landas.[j], k))
+        res.[k] <- ( sum)
+    res
+
+let buildMatrix() =
+    m <- eigenValues.ToArray().Length
+    m
+
+let check_percision(landas_1: LinearAlgebra.Vector<double>, landas_2: LinearAlgebra.Vector<double>) =
+    let mutable res = true;
+    for i = 0 to landas_1.Count - 1 do
+        if abs(landas_1.[i] - landas_2.[i]) > 0.01 then
+            res <- false
+
+
+    if res then
+        for i = 0 to landas_1.Count - 1 do
+            landas_1.[i] <- (landas_1.[i] * (eigenValues.[i] / (landas_1.[i] + (percision * 97.0))))
+    res
 
 [<EntryPoint>]
 let main argv =
-    let mutable m = 0.0
-
     let discretiziedOperator = discretizyFunction(f0)
     let _A = createMatrix(discretiziedOperator)
 
     let landaMatrix = generateEigenValueMatrix(L_initial)
     let D = MatrixExtensions.Subtract(_A, landaMatrix)
+    
     generateQL(D)
 
-    let mutable del = 0.0
-    for r = 0 to N - 1 do
-        del <- del + (V.[r, r] / U.[r, r])
-
-    let m = abs((int)((double)(1.0 / (2.0 * pi * ii)) * del))
-
-    let landas = Array.create m  0.0
-
-    let s = Vector<double>.Build.Dense(m)
-
-    for k = 0 to m - 1 do
-        let mutable sum = 0.0
-        for j = 0 to N - 1 do
-            let landa = L_initial + (q * exp((double)k * (2.0 * pi * (double)j) / (double)N))
-            let landaMatrix = generateEigenValueMatrix(landa)
-            let D = MatrixExtensions.Subtract(_A, landaMatrix)
-            generateQL(D)
-
-            let mutable del = 0.0
-            for r = 0 to N - 1 do
-                del <- del + (V.[r, r] / U.[r, r])
-
-            sum <- sum + (pow(landa, k) * q * exp((double)ii * (2.0 * pi * (double)j / (double)N)) * del)
+    let mutable sum = 0.0
+    for j = 1 to N do
+        let mutable matrixSum = 0.0
+        for r = 0 to n - 1 do
+            matrixSum <- matrixSum + (V.[r, r] / U.[r, r])
         
-        s.[k] <- (1.0 / (double)m) * sum
+        sum <- sum + ((q * abs(exp(Complex.Multiply(Complex.I, ((2.0 * Math.PI * (double)j)/(double)N))).Re)) * abs(matrixSum))
+
+    let landas = LinearAlgebra.Vector<double>.Build.Dense(m)
+    let s = LinearAlgebra.Vector<double>.Build.Dense(m)
 
     for j = 1 to m do
-        landas.[j - 1] <- L_initial + q * exp((double(ii) * 2.0 * pi * (double)j / (double)m))
+        landas.[j - 1] <- L_initial + (q * exp(Complex.Multiply(Complex.I, ((2.0 * (double)j * Math.PI) / (double)m))).Re)
 
-    for j = 0 to (m - 1) do
-        let mutable previousValue = landas.[j]
-        let mutable index = 1
-        while (index = 1 || abs(previousValue - landas.[j]) > percision) do
-            let F = Vector<double>.Build.Dense(m)
+    for k = 1 to m do
+        let mutable sum = 0.0
+        for j = 1 to m do
+            let landaMatrix = generateEigenValueMatrix(landas.[k - 1])
+            let D = MatrixExtensions.Subtract(_A, landaMatrix)
+        
+            resetMatrix()
+            generateQL(D)
 
-            for k = 0 to (m - 1) do
-                let mutable phi_k = 0.0
-                for p = 0 to m - 1 do
-                    phi_k <- phi_k + pow(landa_j((double)k, (double)p), k)
-                F.[k] <- phi_k
-                   
-            previousValue <- landas.[j]
-            landas.[j] <- landas.[j] - (1.0 / (MatrixExtensions.MultiplyVectorsTansponential(F, MatrixExtensions.SubtractVectors(F, s))))
-            index <- index + 1
+            let mutable matrixSum = 0.0
+            for r = 0 to n - 1 do
+                matrixSum <- matrixSum + (V.[r, r] / U.[r, r])
 
-            if index < 100 then
-                landas.[j] <- -1.0
+            sum <- sum + (pow(landas.[k - 1], k) * q * (exp(Complex.Multiply(Complex.I, ((2.0 * Math.PI * (double)(j))/(double)N))).Re) * matrixSum)
 
-    for i = 0 to (m - 1) do
-        if landas.[i] > 0.0 then Console.WriteLine ("L_{0} :: {1}", i + 1, landas.[i])
+        s.[k - 1] <- ((1.0 / (double)N) * sum)
 
-    printfn "End of execution"
+    let mutable calculated_result = landas
+    let mutable prev_landas_result = landas
+    let mutable endLoop = false
+    while (endLoop = false) do
+        calculated_result <- MatrixExtensions.Sum(prev_landas_result, MatrixExtensions.DivideVectors(F_derative(prev_landas_result, m), MatrixExtensions.SubtractVectors(F(prev_landas_result, m), s)))
+
+        endLoop <- check_percision(calculated_result, prev_landas_result)
+        prev_landas_result <- calculated_result
+
+    Console.WriteLine ("{0,7} :: {1,10}", "Index", "EigenValue")
+    for i = 0 to calculated_result.ToArray().Length - 1 do
+        Console.WriteLine ("{0,7} :: {1,10}", (i+1), calculated_result.[i])
+
     Console.ReadKey() |> ignore
     0 // return an integer exit code

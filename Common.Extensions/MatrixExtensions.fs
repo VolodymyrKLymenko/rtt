@@ -13,6 +13,14 @@ module MatrixExtensions =
 
         result
 
+    let DivideVectors(first: LinearAlgebra.Vector<double>, second: LinearAlgebra.Vector<double>) =
+        let result = LinearAlgebra.Vector<double>.Build.Dense(first.Count)
+
+        for i = 0 to first.Count - 1 do
+            result.Item(i) <- first.[i] / second.[i]
+
+        result
+
     let MultiplyVectorsTansponential(first: LinearAlgebra.Vector<double>, second: LinearAlgebra.Vector<double>) =
         let mutable result = 0.0
 
