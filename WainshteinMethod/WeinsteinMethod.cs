@@ -1,11 +1,12 @@
-﻿using Accord.Math;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Accord.Math;
+using ExactDerivativesAndInitApproach;
 
-namespace Weinstein_and_Fiker_methods
+namespace WainshteinMethod
 {
-    class WeinsteinMethod
+    public class WainshteinMethod
     {
         private double _left;
         private double _right;
@@ -20,7 +21,7 @@ namespace Weinstein_and_Fiker_methods
         private double[,] _B;
         private double[,] _C;
 
-        public WeinsteinMethod(Func<double, double> function, int n, double left, double right)
+        public WainshteinMethod(Func<double, double> function, int n, double left, double right)
         {
             _function = function;
             _n = n;
@@ -59,7 +60,7 @@ namespace Weinstein_and_Fiker_methods
             {
                 result[i, i] = _disceteFunction[i];
             }
-            return _T.Mult(result);
+            return Elementwise.Multiply(_T, result);
         }
 
         private double[,] CreateMatrixB()
@@ -77,7 +78,7 @@ namespace Weinstein_and_Fiker_methods
 
         private double[,] CreateMatrixC()
         {
-            double[,] result = new double [_n, _n];
+            double[,] result = new double[_n, _n];
             for (int i = 0; i < _n; ++i)
             {
                 for (int j = 0; j < _n; ++j)
@@ -114,12 +115,11 @@ namespace Weinstein_and_Fiker_methods
             return Matrix.Dot(_C, fk);
         }
 
-
         private double[] GetCalculatedEigenValues(double[,] A, int m, double[,] Am)
         {
             var inverse = new Accord.Math.Decompositions.EigenvalueDecomposition(A.Inverse(), false, true);
             var eigVals = inverse.RealEigenvalues;
-            double dev = (double) m; // ((double)m).GetDev();
+            double dev = ((double)m).GetDev();
             for (int i = 0; i < eigVals.Length; ++i)
             {
                 eigVals[i] = 1 / eigVals[i];

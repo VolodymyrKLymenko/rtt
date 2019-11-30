@@ -10,29 +10,31 @@ open Extreme.Mathematics
 
 let L_initial = 1.2
 
-let q = 2.0
-let area_center = 0.0
+let q = 0.5
+let area_center = 1.5
 
 let N = 25
-let n = 25
-
 let f0 (x) = -((4.0 - x * x) * (4.0 - x * x))
-let percision = 0.001
+let percision = 0.0001
 
-let mutable U = Matrix.Build.Dense(n, n)
-let mutable V = Matrix.Build.Dense(n, n)
-let mutable L = Matrix.Build.Dense(n, n)
-let mutable M = Matrix.Build.Dense(n, n)
+let mutable U = Matrix.Build.Dense(N, N)
+let mutable V = Matrix.Build.Dense(N, N)
+let mutable L = Matrix.Build.Dense(N, N)
+let mutable M = Matrix.Build.Dense(N, N)
 let mutable m = 0
 let mutable eigenValues = LinearAlgebra.Vector<float>.Build.Dense(10)
 
+let buildMatrix() =
+    m <- eigenValues.ToArray().Length
+    m
+
 let generateQL (operator: LinearAlgebra.Matrix<double>) =
-    let mutable B = Matrix.Build.Dense(n, n)
+    let mutable B = Matrix.Build.Dense(N, N)
     B <- MatrixExtensions.SetDiagonalElements(B, 1.0)
 
-    for r = 0 to n - 1 do
+    for r = 0 to N - 1 do
         let mutable k = r
-        for i = r + 1 to n - 1 do
+        for i = r + 1 to N - 1 do
             let mutable L_row = MatrixExtensions.GetRow(L, k)
             let mutable U_column = MatrixExtensions.GetColumn(U, k)
             U.Item(r, k) <- operator.Item(r, k) - MatrixExtensions.SumFirstElements(MatrixExtensions.MultiplyVectors(L_row, U_column), r)
@@ -59,21 +61,21 @@ let generateQL (operator: LinearAlgebra.Matrix<double>) =
         V.[r, k] <-  B.[r, k] - MatrixExtensions.SumFirstElements(MatrixExtensions.Sum(sum_1, sum_2), r)
 
 let resetMatrix () = 
-    U <- Matrix.Build.Dense(n, n)
-    V <- Matrix.Build.Dense(n, n)
-    L <- Matrix.Build.Dense(n, n)
-    M <- Matrix.Build.Dense(n, n)
+    U <- Matrix.Build.Dense(N, N)
+    V <- Matrix.Build.Dense(N, N)
+    L <- Matrix.Build.Dense(N, N)
+    M <- Matrix.Build.Dense(N, N)
 
 let createMatrix (v:LinearAlgebra.Vector<float>) =
-    let matrix = Matrix.Build.Dense(n, n)
-    for index = 0 to (n - 1) do
+    let matrix = Matrix.Build.Dense(N, N)
+    for index = 0 to (N - 1) do
         matrix.Item(index, index) <- -2.0
-        if index + 1 < n then
+        if index + 1 < N then
             matrix.Item(index, index + 1) <- 1.0
             matrix.Item(index + 1, index) <- 1.0
 
-    let vectorMatrix = Matrix.Build.Dense(n, n)
-    for index = 0 to (n - 1) do
+    let vectorMatrix = Matrix.Build.Dense(N, N)
+    for index = 0 to (N - 1) do
         vectorMatrix.Item(index, index) <- v.Item(index)
     
     let res = matrix * vectorMatrix
@@ -83,32 +85,38 @@ let createMatrix (v:LinearAlgebra.Vector<float>) =
     
     let mutable count_ = 0
     for i = 0 to eigenValuess.Length - 1 do
-        if eigenValuess.[i] <= (area_center + q) && eigenValuess.[i] >= (area_center - area_center) && eigenValuess.[i] <> 0.0 then
+        if eigenValuess.[i] <= (area_center + q) && eigenValuess.[i] >= (area_center - q) && eigenValuess.[i] <> 0.0 then
             count_ <- count_ + 1
 
+    if count_ = 0 then
+        Console.WriteLine ("Amount of eigen values: {0}", m)
+        Console.ReadKey() |> ignore
+
     eigenValues <- LinearAlgebra.Vector<float>.Build.Dense(count_)
+
+    buildMatrix()
     
     let mutable index = 0
     for i = 0 to eigenValuess.Length - 1 do
-        if eigenValuess.[i] <= (area_center + q) && eigenValuess.[i] >= (area_center - area_center) && eigenValuess.[i] <> 0.0 then
+        if eigenValuess.[i] <= (area_center + q) && eigenValuess.[i] >= (area_center - q) && eigenValuess.[i] <> 0.0 then
             eigenValues.[index] <- eigenValuess.[i]
             index <- index + 1
 
     res
 
 let discretizyFunction (func:(float -> float)) =
-    let resVector = Vector.Build.Dense n
-    let step = (2.0 * q) / ((double)n - 1.0)
+    let resVector = Vector.Build.Dense N
+    let step = (2.0 * q) / ((double)N - 1.0)
     let mutable left = area_center - q
-    for index = 0 to (n - 1) do
+    for index = 0 to (N - 1) do
         let discretizedItem = func(left)
         resVector.Item(index) <- discretizedItem
         left <- left + step
     resVector
 
 let generateEigenValueMatrix(landa: float) =
-    let vectorMatrix = Matrix.Build.Dense(n, n)
-    for index = 0 to (n - 1) do
+    let vectorMatrix = Matrix.Build.Dense(N, N)
+    for index = 0 to (N - 1) do
         vectorMatrix.Item(index, index) <- landa
     vectorMatrix
 
@@ -136,10 +144,6 @@ let F_derative(landas: LinearAlgebra.Vector<double>, m: int) =
         res.[k] <- ( sum)
     res
 
-let buildMatrix() =
-    m <- eigenValues.ToArray().Length
-    m
-
 let check_percision(landas_1: LinearAlgebra.Vector<double>, landas_2: LinearAlgebra.Vector<double>) =
     let mutable res = true;
     for i = 0 to landas_1.Count - 1 do
@@ -165,10 +169,14 @@ let main argv =
     let mutable sum = 0.0
     for j = 1 to N do
         let mutable matrixSum = 0.0
-        for r = 0 to n - 1 do
+        for r = 0 to N - 1 do
             matrixSum <- matrixSum + (V.[r, r] / U.[r, r])
         
         sum <- sum + ((q * abs(exp(Complex.Multiply(Complex.I, ((2.0 * Math.PI * (double)j)/(double)N))).Re)) * abs(matrixSum))
+
+    m <- (int)((1.0 / (double)N) * sum)
+
+    buildMatrix()
 
     let landas = LinearAlgebra.Vector<double>.Build.Dense(m)
     let s = LinearAlgebra.Vector<double>.Build.Dense(m)
@@ -186,7 +194,7 @@ let main argv =
             generateQL(D)
 
             let mutable matrixSum = 0.0
-            for r = 0 to n - 1 do
+            for r = 0 to N - 1 do
                 matrixSum <- matrixSum + (V.[r, r] / U.[r, r])
 
             sum <- sum + (pow(landas.[k - 1], k) * q * (exp(Complex.Multiply(Complex.I, ((2.0 * Math.PI * (double)(j))/(double)N))).Re) * matrixSum)
@@ -202,9 +210,10 @@ let main argv =
         endLoop <- check_percision(calculated_result, prev_landas_result)
         prev_landas_result <- calculated_result
 
-    Console.WriteLine ("{0,7} :: {1,10}", "Index", "EigenValue")
+    Console.WriteLine ("Amount of eigen values: {0}", m)
+    Console.WriteLine ("{0,10}", "EigenValue: ")
     for i = 0 to calculated_result.ToArray().Length - 1 do
-        Console.WriteLine ("{0,7} :: {1,10}", (i+1), calculated_result.[i])
+        Console.WriteLine ("{0}, ", calculated_result.[i])
 
     Console.ReadKey() |> ignore
     0 // return an integer exit code

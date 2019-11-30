@@ -5,13 +5,13 @@ open MathNet.Numerics.LinearAlgebra
 open Common.Extensions
 open Accord.Math
 
-let L_initial = 1.8
+let L_initial = 1.9
 
 let discretizationVectorSize = 70
 let minBorder = -3.0
 let maxBorder = 3.0
 let f0 (x) = -((4.0 - x * x) * (4.0 - x * x))
-let percision = 0.0001
+let percision = 0.000001
 
 let mutable U = Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
 let mutable V = Matrix.Build.Dense(discretizationVectorSize, discretizationVectorSize)
@@ -111,6 +111,7 @@ let main argv =
     let Landas = Vector.Build.Dense(1000000)
     let lower_bounds = Vector.Build.Dense(1000000)
     let higher_bounds = Vector.Build.Dense(1000000)
+    let mutable calculated_landa = 0.0
 
     Landas.[0] <- L_initial
     lower_bounds.[0] <- minBorder
@@ -141,18 +142,12 @@ let main argv =
 
         index <- index + 1
 
+    calculated_landa <- Landas.[index - 1]
+
     Console.WriteLine ("\nTwo side iterations")
-    Console.WriteLine ("{0,2} : {1,12}  < Result < {2,10}", "№", "m first side", "m second side")
+    Console.WriteLine ("{0,2} : {1,12}  < Result < {2,10}", "№", "m: first side", "v: second side")
     for i = 1 to index - 1 do
-        Console.WriteLine ("{0,2} : {1,12}  < {2,10} < {3,10}", i, lower_bounds.[i], Landas.[i], higher_bounds.[i])
-
-
-    let inverse = new Decompositions.EigenvalueDecomposition(_A.ToArray(), false, true)
-    let eigenValuess = inverse.RealEigenvalues
-
-    Console.WriteLine ("\nReal values")
-    for i = 0 to eigenValuess.Length - 1 do
-        Console.Write ("{0} ,", eigenValuess.[i])
+        Console.WriteLine ("{0,2} : {1,12}  < {2,10} < {3,10}", i, (calculated_landa - abs(lower_bounds.[i] - calculated_landa)), Landas.[i], higher_bounds.[i])
 
     Console.ReadKey() |> ignore
     0

@@ -11,11 +11,11 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Common.Extensions", "Common
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "InitialApproximation", "InitialApproximation\InitialApproximation.fsproj", "{FDF95C7D-CC37-4F34-B1BC-A1A84B857486}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WeinsteinMethod", "WeinsteinMethod\WeinsteinMethod.csproj", "{40D527CD-DE8F-4A23-99C8-F1144A2CDB0B}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "TwoSideIterationOfNewtone", "TwoSideIterationOfNewtone\TwoSideIterationOfNewtone.fsproj", "{43971A38-3B42-49B2-A77B-4FE9F4F9C72A}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TwoSideIterationOfNewtone", "TwoSideIterationOfNewtone\TwoSideIterationOfNewtone.fsproj", "{43971A38-3B42-49B2-A77B-4FE9F4F9C72A}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "HalleyMethod", "HalleyMethod\HalleyMethod.fsproj", "{680FEDFE-FD58-4470-B4E9-4BCFFA739661}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "HalleyMethod", "HalleyMethod\HalleyMethod.fsproj", "{680FEDFE-FD58-4470-B4E9-4BCFFA739661}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WainshteinMethod", "WainshteinMethod\WainshteinMethod.csproj", "{26D0466E-3408-484C-BE23-A365A900E854}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,10 +39,6 @@ Global
 		{FDF95C7D-CC37-4F34-B1BC-A1A84B857486}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FDF95C7D-CC37-4F34-B1BC-A1A84B857486}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FDF95C7D-CC37-4F34-B1BC-A1A84B857486}.Release|Any CPU.Build.0 = Release|Any CPU
-		{40D527CD-DE8F-4A23-99C8-F1144A2CDB0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{40D527CD-DE8F-4A23-99C8-F1144A2CDB0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{40D527CD-DE8F-4A23-99C8-F1144A2CDB0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{40D527CD-DE8F-4A23-99C8-F1144A2CDB0B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{43971A38-3B42-49B2-A77B-4FE9F4F9C72A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{43971A38-3B42-49B2-A77B-4FE9F4F9C72A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{43971A38-3B42-49B2-A77B-4FE9F4F9C72A}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -51,6 +47,10 @@ Global
 		{680FEDFE-FD58-4470-B4E9-4BCFFA739661}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{680FEDFE-FD58-4470-B4E9-4BCFFA739661}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{680FEDFE-FD58-4470-B4E9-4BCFFA739661}.Release|Any CPU.Build.0 = Release|Any CPU
+		{26D0466E-3408-484C-BE23-A365A900E854}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{26D0466E-3408-484C-BE23-A365A900E854}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{26D0466E-3408-484C-BE23-A365A900E854}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{26D0466E-3408-484C-BE23-A365A900E854}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

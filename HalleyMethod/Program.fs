@@ -8,8 +8,8 @@ open Accord.Math
 let L_initial = 1.69
 
 let discretizationVectorSize = 40
-let minBorder = -1.0
-let maxBorder = 1.0
+let minBorder = -3.0
+let maxBorder = 3.0
 let f0 (x) = -((4.0 - x * x) * (4.0 - x * x))
 let percision = 0.0000001
 
@@ -134,16 +134,8 @@ let main argv =
         index <- index + 1
 
     Console.WriteLine("Helley method")
-    Console.WriteLine("Amount of itterations {0}", index - 1)
     Console.WriteLine("Initial aproximation was {0}", L_initial)
     Console.WriteLine("Calculated Result eigen value: {0}\n", Landas.[index - 1])
-
-    let inverse = new Decompositions.EigenvalueDecomposition(_A.ToArray(), false, true)
-    let eigenValuess = inverse.RealEigenvalues
-
-    Console.WriteLine ("\nReal values")
-    for i = 0 to eigenValuess.Length - 1 do
-        Console.Write ("{0} ,", eigenValuess.[i])
 
     Console.ReadKey() |> ignore
     0
