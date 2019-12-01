@@ -89,24 +89,21 @@ namespace WainshteinMethod
             return result;
         }
 
-        private double[] CreateFkArray(int k)
+        public void Calculate(int m, out double[] realValues, out double[] calculatedValues)
         {
-            var fk = new double[_n];
-            if (k == 0)
+            var Cm = GetCmOperator(_C, m);
+            var Am = new double[_n, _n];
+            for (int i = 0; i < _n; ++i)
             {
-                for (int i = 0; i < _n; ++i)
+                for (int j = 0; j < _n; ++j)
                 {
-                    fk[i] = 1;
+                    Am[i, j] = _B[i, j] + Cm[i, j];
                 }
             }
-            else
-            {
-                for (int i = 0; i < _n; ++i)
-                {
-                    fk[i] = Math.Sin(_left + i * _step);
-                }
-            }
-            return fk;
+            calculatedValues = GetCalculatedEigenValues(_A, m, Am).OrderBy(c => c).ToArray();
+
+            var eigReal = new Accord.Math.Decompositions.EigenvalueDecomposition(_A, false, true);
+            realValues = eigReal.RealEigenvalues.OrderBy(c => c).ToArray();
         }
 
         private double[] CreateGkArray(double[] fk)
@@ -187,21 +184,24 @@ namespace WainshteinMethod
             return Cm;
         }
 
-        public void Calculate(int m, out double[] realValues, out double[] calculatedValues)
+        private double[] CreateFkArray(int k)
         {
-            var Cm = GetCmOperator(_C, m);
-            var Am = new double[_n, _n];
-            for (int i = 0; i < _n; ++i)
+            var fk = new double[_n];
+            if (k == 0)
             {
-                for (int j = 0; j < _n; ++j)
+                for (int i = 0; i < _n; ++i)
                 {
-                    Am[i, j] = _B[i, j] + Cm[i, j];
+                    fk[i] = 1;
                 }
             }
-            calculatedValues = GetCalculatedEigenValues(_A, m, Am).OrderBy(c => c).ToArray();
-
-            var eigReal = new Accord.Math.Decompositions.EigenvalueDecomposition(_A, false, true);
-            realValues = eigReal.RealEigenvalues.OrderBy(c => c).ToArray();
+            else
+            {
+                for (int i = 0; i < _n; ++i)
+                {
+                    fk[i] = Math.Sin(_left + i * _step);
+                }
+            }
+            return fk;
         }
     }
 }
