@@ -5,7 +5,7 @@ open MathNet.Numerics.LinearAlgebra
 open Common.Extensions
 open Accord.Math
 
-let L_initial = 1.20
+let L_initial = 0.01
 
 let discretizationVectorSize = 20
 let minBorder = -3.0
@@ -162,13 +162,6 @@ let main argv =
     let discretiziedOperator = discretizyFunction(f0)
     let _A = createMatrix(discretiziedOperator)
 
-    let inverse = new Decompositions.EigenvalueDecomposition(_A.ToArray(), false, true)
-    let eigenValuess = inverse.RealEigenvalues
-
-    Console.WriteLine("Original values")
-    for i = 0 to eigenValuess.Length - 1 do
-        Console.WriteLine("     -> Eigen Value: {0};", eigenValuess.[i])
-
     let mutable index = 1
     while index = 1 || Math.Abs(Landas.[index - 1] - Landas.[index - 2]) > percision do
         let landaMatrix = generateEigenValueMatrix(Landas.Item(index - 1))
@@ -324,7 +317,7 @@ let main argv =
 
     Console.WriteLine("\nTwo side inclusive Helley method 2")
     Console.WriteLine("Initial aproximation was {0}", L_initial)
-    for i = 0 to index - 1 do
+    for i = 1 to index - 1 do
         Console.WriteLine("     -> Landa: {0} < L < M: {1}", Landas.[i], M_values.[i])
 
     Console.ReadKey() |> ignore
